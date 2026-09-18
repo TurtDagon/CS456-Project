@@ -16,7 +16,6 @@ fun getStr () = String.concat (List.rev (!strBuf))
 fun eof() = let val pos = hd(!linePos) in Tokens.EOF(pos,pos) end
 
 fun asciiString text =
-
     let val subStr = String.substring(text, 1, 3)
         val intVal = valOf(Int.fromString subStr)
         val charVal = chr intVal
@@ -38,6 +37,8 @@ string = {character} | {whiteSpace};
 <INITIAL> "\"" => (YYBEGIN STRING; stringStart := yypos; clearStr(); continue());
 <STRING> "\"" => (YYBEGIN INITIAL; Tokens.STRING(getStr(), !stringStart, yypos+1));
 
+
+
 <STRING> \\n  => (lineNum := !lineNum+1; linePos := yypos :: !linePos; addStr "\n"; continue());
 <STRING> \\t  => (addStr "\t"; continue());
 <STRING> \\f  => (addStr "\012"; continue());
@@ -46,6 +47,8 @@ string = {character} | {whiteSpace};
 <STRING> "\\\"" => (addStr "\""; continue());
 <STRING> {string}+   => (addStr yytext; continue());
 
+\n	=> (lineNum := !lineNum+1; linePos := yypos :: !linePos; continue());
+\t => (continue());
 " "   => (continue());
 ","   => (Tokens.COMMA(yypos,yypos+1));
 var   => (Tokens.VAR(yypos,yypos+3));
