@@ -40,7 +40,7 @@ string = {character} | {whiteSpace};
 <STRING> \\f  => (addStr "\012"; continue());
 <STRING> \\r  => (addStr "\013"; continue());
 <STRING> \\{digit}{3} => (addStr (asciiString yytext); continue());
-<STRING> "\\\"" => (addStr "\\""; continue());
+<STRING> "\\\"" => (addStr "\""; continue());
 <STRING> {string}+   => (addStr yytext; continue());
 
 \n	=> (lineNum := !lineNum+1; linePos := yypos :: !linePos; continue());
