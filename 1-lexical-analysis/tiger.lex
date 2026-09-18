@@ -5,49 +5,46 @@ type lexresult = Tokens.token
 val lineNum = ErrorMsg.lineNum
 val linePos = ErrorMsg.linePos
 fun err(p1,p2) = ErrorMsg.error p1
-val str = ""
 
+val strBuf : string list ref = ref []
+val stringStart = ref 0
 
+fun addStr s = strBuf := s :: !strBuf
+fun clearStr () = strBuf := []
+fun getStr () = String.concat (List.rev (!strBuf))
 
 fun eof() = let val pos = hd(!linePos) in Tokens.EOF(pos,pos) end
+
 fun asciiString text =
 
     let val subStr = String.substring(text, 1, 3)
         val intVal = valOf(Int.fromString subStr)
         val charVal = chr intVal
     in Char.toString charVal end
-fun strAscii text =
-    case text of "\f" => asciiString ("\012")
-            | "\t" =>  asciiString ("\009")
-            | "\r" => asciiString ("\013")
-            | _ => "";
-    
-
-
-
 
 %%
 %s COMMENT STRING;
 digit = [0-9];
 letter = [A-Za-z];
 character = [A-Za-z0-9_];
-whiteSpace = [\ \\t\\r\\n\\f];
+whiteSpace = [\ \t\r\n\f];
 ascii = \\{digit}{3};
-string = {character} | {whiteSpace} | {ascii};
-
+string = {character} | {whiteSpace};
 
 
 %%
 <INITIAL, COMMENT> "/*" => (YYBEGIN COMMENT; continue());
 <COMMENT> "*/" => (YYBEGIN INITIAL; continue());
-<INITIAL> "\"" => (YYBEGIN STRING; continue());
-<STRING> "\"" => (YYBEGIN INITIAL; continue());
+<INITIAL> "\"" => (YYBEGIN STRING; stringStart := yypos; clearStr(); continue());
+<STRING> "\"" => (YYBEGIN INITIAL; Tokens.STRING(getStr(), !stringStart, yypos+1));
 
-<STRING> \\n => (lineNum := !lineNum+1; linePos := yypos :: !linePos; continue());
-<STRING> \\t => (strAscii yytext; continue());
-<STRING> \\f => (Tokens.STRING(strAscii yytext, yypos, yypos+size yytext); continue());
-<STRING> \\{digit}{3} => (Tokens.STRING(asciiString (yytext), yypos, yypos+size yytext));
-<STRING> "\\\"" => (continue());
+<STRING> \\n  => (lineNum := !lineNum+1; linePos := yypos :: !linePos; addStr "\n"; continue());
+<STRING> \\t  => (addStr "\t"; continue());
+<STRING> \\f  => (addStr "\012"; continue());
+<STRING> \\r  => (addStr "\013"; continue());
+<STRING> \\{digit}{3} => (addStr (asciiString yytext); continue());
+<STRING> "\\\"" => (addStr "\""; continue());
+<STRING> {string}+   => (addStr yytext; continue());
 
 " "   => (continue());
 ","   => (Tokens.COMMA(yypos,yypos+1));
@@ -90,7 +87,6 @@ array => (Tokens.ARRAY(yypos, yypos+3));
 "(" => (Tokens.LPAREN(yypos,yypos+1));
 ";" => (Tokens.SEMICOLON(yypos,yypos+1));
 <INITIAL> {digit}+  => (Tokens.INT(valOf(Int.fromString yytext), yypos, yypos+size yytext));
-<STRING> {string}*   => (Tokens.STRING(yytext, yypos, yypos+ size yytext));
 <INITIAL> {letter}+{character}*   => (Tokens.ID(yytext, yypos, yypos+ size yytext));
 <COMMENT> {string}*   => (continue());
 .   => (ErrorMsg.error yypos ("illegal character " ^ yytext); continue());
