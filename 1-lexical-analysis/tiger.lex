@@ -27,9 +27,7 @@ digit = [0-9];
 letter = [A-Za-z];
 character = [A-Za-z0-9_];
 whiteSpace = [\ \t\r\n\f];
-ascii = \\{digit}{3};
 string = {character} | {whiteSpace};
-
 
 %%
 <INITIAL, COMMENT> "/*" => (YYBEGIN COMMENT; continue());
@@ -37,14 +35,12 @@ string = {character} | {whiteSpace};
 <INITIAL> "\"" => (YYBEGIN STRING; stringStart := yypos; clearStr(); continue());
 <STRING> "\"" => (YYBEGIN INITIAL; Tokens.STRING(getStr(), !stringStart, yypos+1));
 
-
-
 <STRING> \\n  => (lineNum := !lineNum+1; linePos := yypos :: !linePos; addStr "\n"; continue());
 <STRING> \\t  => (addStr "\t"; continue());
 <STRING> \\f  => (addStr "\012"; continue());
 <STRING> \\r  => (addStr "\013"; continue());
 <STRING> \\{digit}{3} => (addStr (asciiString yytext); continue());
-<STRING> "\\\"" => (addStr "\""; continue());
+<STRING> "\\\"" => (addStr "\\""; continue());
 <STRING> {string}+   => (addStr yytext; continue());
 
 \n	=> (lineNum := !lineNum+1; linePos := yypos :: !linePos; continue());
